@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mars</title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        .tooltip {
+            background-color: #00000066;
+            padding: 5px;
+            border-radius: 3px;
+            border: 1px solid black;
+        }
+
+        #mars {
+            width: 800px;
+            height: 800px;
+        }
+    </style>
+    <script src="https://unpkg.com/globe.gl"></script>
+</head>
+<body>
+<div id="mars"></div>
+<script>
+    fetch('./mars.geojson').then(res => res.json()).then(data => {
+        const world = Globe()
+            .width(800)
+            .height(800)
+            .showAtmosphere(false)
+            .globeImageUrl('./4k_mars_low.jpg')
+            .bumpImageUrl('./4k_bump.png')
+            .backgroundImageUrl('./2k_sky.png')
+            .hexPolygonsData(data.features)
+            .hexPolygonResolution(1)
+            .hexPolygonAltitude(0.01)
+            .hexPolygonMargin(0.1)
+            .hexPolygonColor(({properties: d}) => {
+                switch (d.state) {
+                    case 1:
+                        return `#99000066`
+                    default:
+                        return `#00000033`
+                }
+            })
+            .hexPolygonLabel(({properties: d}) => `<div class="tooltip"><b>[${d.code}] ${d.name}</b><br>[${d.center[0]};${d.center[1]}]</div>`)
+            .onHexPolygonClick((p, e) => {
+                console.log(p); // TODO remove
+                world.pointOfView({ lat: p.properties.center[0], lng: p.properties.center[1], altitude: 0.5 }, 3000)
+            })
+            .onGlobeClick(({ lat, lng }, event) => {
+                console.log(lat, lng);
+            })
+            (document.getElementById('mars'));
+
+        const globeMaterial = world.globeMaterial();
+        globeMaterial.bumpScale = 10;
+
+        /*window.addEventListener('resize', (event) => {
+            world.width([event.target.innerWidth])
+            world.height([event.target.innerHeight])
+        });*/
+
+        const controls = world.controls();
+
+        controls.addEventListener('change', () => {
+            const pov = world.pointOfView();
+            controls.rotateSpeed = pov.altitude * 0.25;
+            controls.zoomSpeed = (pov.altitude + 1) * 0.5;
+        });
+
+        window.world = world; // TODO remove
+    });
+</script>
+</body>
+</html>
